@@ -7,7 +7,7 @@ interface ChineseCharacter {
 
 function App() {
   // 默认的汉字数组
-  const [characters, setCharacters] = useState<ChineseCharacter[]>([
+  const [characters,] = useState<ChineseCharacter[]>([
     { char: '人' },
     { char: '头' },
     { char: '目' },
@@ -81,46 +81,81 @@ function App() {
     { char: '弯' },
     { char: '厂' },
     { char: '前' },
-    { char: '后' }
+    { char: '后' },
+    { char: '灯' },
+    { char: '光' },
   ])
 
   const [currentPage, setCurrentPage] = useState(0)
   const [itemsPerPage, setItemsPerPage] = useState(6) // 默认为移动端显示数量
   const [userDefinedPageSize, setUserDefinedPageSize] = useState<number | null>(null) // 用户自定义页面大小
   const [showAll, setShowAll] = useState(false) // 是否显示全部内容
+  // 全屏状态
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const currentX = useRef(0)
   const isSwiping = useRef(false)
-  
+
+  // 检测全屏状态
+  useEffect(() => {
+    const checkFullscreen = () => {
+      const fullscreenElement = document.fullscreenElement ||
+        (document as unknown as { webkitFullscreenElement: Element | null }).webkitFullscreenElement ||
+        (document as unknown as { mozFullScreenElement: Element | null }).mozFullScreenElement ||
+        (document as unknown as { msFullscreenElement: Element | null }).msFullscreenElement;
+      setIsFullscreen(!!fullscreenElement);
+    };
+
+    // 监听全屏变化事件
+    document.addEventListener('fullscreenchange', checkFullscreen);
+    document.addEventListener('webkitfullscreenchange', checkFullscreen);
+    document.addEventListener('mozfullscreenchange', checkFullscreen);
+    document.addEventListener('MSFullscreenChange', checkFullscreen);
+
+    // 初始检查
+    checkFullscreen();
+
+    // 清理函数
+    return () => {
+      document.removeEventListener('fullscreenchange', checkFullscreen);
+      document.removeEventListener('webkitfullscreenchange', checkFullscreen);
+      document.removeEventListener('mozfullscreenchange', checkFullscreen);
+      document.removeEventListener('MSFullscreenChange', checkFullscreen);
+    };
+  }, []);
+
   // 根据屏幕宽度动态设置每页显示数量（如果用户没有自定义）
   useEffect(() => {
     const handleResize = () => {
-      // 如果用户没有自定义页面大小，则根据屏幕宽度设置
+      // 如果用户没有自定义页面大小，则根据屏幕宽度动态计算
       if (userDefinedPageSize === null) {
-        if (window.innerWidth >= 768) {
-          setItemsPerPage(10) // PC端显示10个（5×2布局）
-        } else {
-          // 移动端根据屏幕宽度自适应
-          const screenWidth = window.innerWidth;
-          if (screenWidth >= 480) {
-            setItemsPerPage(6); // 平板或大屏手机显示6个
-          } else {
-            setItemsPerPage(4); // 小屏手机显示4个
-          }
-        }
+        // 根据屏幕宽度和卡片大小（120px）加上间距（24px）来计算每行可显示的数量
+        const cardWidthWithGap = 144; // 120px + 24px gap
+        const availableWidth = window.innerWidth - 40; // 减去容器的左右padding
+        const itemsPerRow = Math.floor(availableWidth / cardWidthWithGap);
+
+        // 根据屏幕高度估算每页可显示的行数，全屏模式下减去更少的高度
+        const cardHeightWithGap = 144; // 120px + 24px gap
+        const headerHeight = isFullscreen ? 0 : 200; // 全屏模式下不考虑标题高度
+        const availableHeight = window.innerHeight - headerHeight;
+        const rowsPerPage = Math.floor(availableHeight / cardHeightWithGap);
+
+        // 计算每页总数量，最少显示4个
+        const calculatedItemsPerPage = Math.max(4, itemsPerRow * rowsPerPage);
+        setItemsPerPage(calculatedItemsPerPage);
       }
     }
-    
+
     // 初始设置
     handleResize()
-    
+
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
-    
+
     // 清理函数
     return () => window.removeEventListener('resize', handleResize)
-  }, [userDefinedPageSize])
+  }, [userDefinedPageSize, isFullscreen])
 
   // 处理页面大小变化
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -185,7 +220,7 @@ function App() {
   // 触摸事件处理 - 结束
   const handleTouchEnd = () => {
     if (!isSwiping.current) return
-    
+
     const diff = startX.current - currentX.current
     // 如果滑动距离大于50px，则翻页
     if (diff > 50 && currentPage < totalPages - 1) {
@@ -193,29 +228,29 @@ function App() {
     } else if (diff < -50 && currentPage > 0) {
       goToPage(currentPage - 1)
     }
-    
+
     isSwiping.current = false
   }
 
   return (
     <div className="app-container">
-      <h1 className="app-title">汉字显示</h1>
-      
+      <h1 className={`app-title ${isFullscreen || showAll ? 'hidden-in-fullscreen' : ''}`}>汉字显示</h1>
+
       {/* 添加新汉字的表单和页面大小设置 */}
       {/* 显示控制 */}
       <div className="display-control">
-        <button 
-          onClick={toggleShowAll} 
+        <button
+          onClick={toggleShowAll}
           className="show-all-button"
         >
           {showAll ? '分页' : '全部'}
         </button>
-        
+
         {!showAll && (
           <div className="page-size-control">
             <label htmlFor="pageSize">个数：</label>
-            <select 
-              id="pageSize" 
+            <select
+              id="pageSize"
               value={userDefinedPageSize === null ? 'auto' : userDefinedPageSize}
               onChange={handlePageSizeChange}
               className="page-size-select"
@@ -228,13 +263,13 @@ function App() {
               <option value="12">12个</option>
               <option value="16">16个</option>
             </select>
-           
+
           </div>
         )}
       </div>
 
       {/* 汉字显示区域 */}
-      <div 
+      <div
         className={`characters-container ${showAll ? 'show-all' : ''}`}
         ref={containerRef}
         onTouchStart={!showAll ? handleTouchStart : undefined}
@@ -243,8 +278,8 @@ function App() {
       >
         <div className={`characters-grid ${showAll ? 'show-all' : ''}`}>
           {getDisplayedCharacters().map((item, index) => (
-            <div 
-              key={`${item.char}-${index}`} 
+            <div
+              key={`${item.char}-${index}`}
               className="character-card"
             >
               <div className="character">{item.char}</div>
@@ -256,7 +291,7 @@ function App() {
       {/* 分页控制 - 仅在非显示全部模式下显示 */}
       {!showAll && (
         <div className="pagination">
-          <button 
+          <button
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 0}
             className="page-button"
@@ -266,7 +301,7 @@ function App() {
           <span className="page-info">
             {currentPage + 1} / {totalPages}
           </span>
-          <button 
+          <button
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages - 1}
             className="page-button"
