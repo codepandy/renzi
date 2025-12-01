@@ -84,6 +84,21 @@ function App() {
     { char: '后' },
     { char: '灯' },
     { char: '光' },
+    { char: '苗' },
+    { char: '森' },
+    { char: '林' },
+    { char: '亭' },
+    { char: '电' },
+    { char: '雷' },
+    { char: '雪' },
+    { char: '果' },
+    { char: '花' },
+    { char: '草' },
+    { char: '圆' },
+    { char: '尖' },
+    { char: '问' },
+    { char: '分' },
+    { char: '关' },
   ])
 
   const [currentPage, setCurrentPage] = useState(0)
@@ -277,14 +292,19 @@ function App() {
         onTouchEnd={!showAll ? handleTouchEnd : undefined}
       >
         <div className={`characters-grid ${showAll ? 'show-all' : ''}`}>
-          {getDisplayedCharacters().map((item, index) => (
-            <div
-              key={`${item.char}-${index}`}
-              className="character-card"
-            >
-              <div className="character">{item.char}</div>
-            </div>
-          ))}
+          {getDisplayedCharacters().map((item, index) => {
+            // 计算全局索引，考虑当前页码和每页显示数量
+            const globalIndex = showAll ? index : currentPage * itemsPerPage + index;
+            return (
+              <div
+                key={`${item.char}-${globalIndex}`}
+                className="character-card"
+              >
+                <div className="character">{item.char}</div>
+                <div className="character-index">{globalIndex + 1}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

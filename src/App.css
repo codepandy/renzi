@@ -177,6 +177,17 @@ body {
   transform-style: preserve-3d;
   perspective: 1000px;
   cursor: pointer;
+  position: relative;
+}
+
+/* 索引样式 */
+.character-index {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #666;
 }
 
 .character-card:hover {
