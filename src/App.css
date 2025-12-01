@@ -63,9 +63,49 @@ body {
 .display-control {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 1rem;
   margin-bottom: 1.5rem;
   align-items: center;
+  justify-content: center;
+}
+
+/* 控制按钮样式 */
+.control-button {
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.control-button:hover:not(:disabled) {
+  background: #5a67d8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.control-button:active {
+  transform: translateY(0);
+}
+
+.control-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.control-button.active {
+  background: #48bb78;
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+}
+
+.control-button.active:hover {
+  background: #38a169;
 }
 
 /* 页面大小控制样式 */
@@ -194,6 +234,25 @@ body {
   transform: translateY(-10px) rotateY(5deg);
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
   background: linear-gradient(135deg, #e0e5ec 0%, #a9b6d5 100%);
+}
+
+/* 选中卡片样式 */
+.character-card.selected {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 15px 30px rgba(72, 187, 120, 0.4);
+  background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+  border: 2px solid #48bb78;
+}
+
+.character-card.selected .character {
+  color: #2f855a;
+  text-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+}
+
+.character-card.selected .character-index {
+  background: rgba(72, 187, 120, 0.8);
+  color: white;
+  font-weight: bold;
 }
 
 .character {

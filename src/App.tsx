@@ -107,6 +107,14 @@ function App() {
   const [showAll, setShowAll] = useState(false) // 是否显示全部内容
   // 全屏状态
   const [isFullscreen, setIsFullscreen] = useState(false)
+  // 自动选中状态
+  const [isAutoSelecting, setIsAutoSelecting] = useState(false)
+  // 随选选中状态
+  const [isRandomSelecting, setIsRandomSelecting] = useState(false)
+  // 当前选中索引
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  // 定时器引用
+  const autoSelectTimerRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const currentX = useRef(0)
@@ -172,6 +180,67 @@ function App() {
     return () => window.removeEventListener('resize', handleResize)
   }, [userDefinedPageSize, isFullscreen])
 
+  // 自动选中清理函数
+  useEffect(() => {
+    return () => {
+      if (autoSelectTimerRef.current) {
+        clearTimeout(autoSelectTimerRef.current)
+      }
+    }
+  }, [])
+
+  // 自动选中逻辑
+  useEffect(() => {
+    if ((isAutoSelecting || isRandomSelecting) && autoSelectTimerRef.current === null) {
+      const autoSelect = () => {
+        if (isAutoSelecting) {
+          // 按顺序选中
+          setSelectedIndex(prevIndex => {
+            let newIndex: number;
+
+            if (prevIndex === null || prevIndex >= characters.length - 1) {
+              // 循环回到第一页
+              newIndex = 0;
+              setCurrentPage(0);
+            } else {
+              newIndex = prevIndex + 1;
+            }
+
+            // 检查是否需要换页
+            const currentPageStartIndex = currentPage * itemsPerPage;
+            const currentPageEndIndex = currentPageStartIndex + itemsPerPage - 1;
+
+            // 如果新索引超出当前页范围，自动换页
+            if (newIndex > currentPageEndIndex) {
+              const nextPage = Math.floor(newIndex / itemsPerPage);
+              setCurrentPage(nextPage);
+            }
+
+            return newIndex;
+          })
+        } else if (isRandomSelecting) {
+          // 随选选中
+          const randomIndex = Math.floor(Math.random() * characters.length);
+          setSelectedIndex(randomIndex);
+
+          // 自动切换到随机索引所在的页面
+          const randomPage = Math.floor(randomIndex / itemsPerPage);
+          setCurrentPage(randomPage);
+        }
+
+        // 1秒后继续执行
+        autoSelectTimerRef.current = setTimeout(autoSelect, 1000)
+      }
+
+      // 立即执行一次
+      autoSelect()
+    } else if (!isAutoSelecting && !isRandomSelecting && autoSelectTimerRef.current !== null) {
+      // 清除定时器
+      clearTimeout(autoSelectTimerRef.current)
+      autoSelectTimerRef.current = null
+    }
+  }, [isAutoSelecting, isRandomSelecting, characters.length, currentPage, itemsPerPage])
+
   // 处理页面大小变化
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = parseInt(e.target.value)
@@ -211,6 +280,56 @@ function App() {
   const toggleShowAll = () => {
     setShowAll(!showAll)
     setCurrentPage(0) // 重置到第一页
+  }
+
+  // 切换全屏
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      // 进入全屏
+      containerRef.current?.requestFullscreen().catch(err => {
+        console.error('Error attempting to enable fullscreen:', err)
+      })
+    } else {
+      // 退出全屏
+      document.exitFullscreen().catch(err => {
+        console.error('Error attempting to disable fullscreen:', err)
+      })
+    }
+  }
+
+  // 切换自动选中
+  const toggleAutoSelect = () => {
+    setIsAutoSelecting(prev => {
+      if (prev) {
+        // 停止自动选中
+        return false
+      } else {
+        // 开始自动选中，停止随选选中
+        setIsRandomSelecting(false)
+        return true
+      }
+    })
+  }
+
+  // 切换随选选中
+  const toggleRandomSelect = () => {
+    setIsRandomSelecting(prev => {
+      if (prev) {
+        // 停止随选选中
+        return false
+      } else {
+        // 开始随选选中，停止自动选中
+        setIsAutoSelecting(false)
+        return true
+      }
+    })
+  }
+
+  // 停止所有选中
+  const stopAllSelection = () => {
+    setIsAutoSelecting(false)
+    setIsRandomSelecting(false)
+    setSelectedIndex(null)
   }
 
   // 翻页处理
@@ -278,9 +397,41 @@ function App() {
               <option value="12">12个</option>
               <option value="16">16个</option>
             </select>
-
           </div>
         )}
+
+        {/* 自动选中控制 */}
+        <button
+          onClick={toggleAutoSelect}
+          className={`control-button ${isAutoSelecting ? 'active' : ''}`}
+        >
+          {isAutoSelecting ? '停止顺序' : '顺序选中'}
+        </button>
+
+        {/* 随选选中控制 */}
+        <button
+          onClick={toggleRandomSelect}
+          className={`control-button ${isRandomSelecting ? 'active' : ''}`}
+        >
+          {isRandomSelecting ? '停止随选' : '随选选中'}
+        </button>
+
+        {/* 停止所有选中 */}
+        <button
+          onClick={stopAllSelection}
+          className="control-button"
+          disabled={!isAutoSelecting && !isRandomSelecting}
+        >
+          停止
+        </button>
+
+        {/* 全屏按钮 */}
+        <button
+          onClick={toggleFullscreen}
+          className="control-button"
+        >
+          {isFullscreen ? '退出全屏' : '全屏'}
+        </button>
       </div>
 
       {/* 汉字显示区域 */}
@@ -295,10 +446,12 @@ function App() {
           {getDisplayedCharacters().map((item, index) => {
             // 计算全局索引，考虑当前页码和每页显示数量
             const globalIndex = showAll ? index : currentPage * itemsPerPage + index;
+            // 判断是否选中
+            const isSelected = selectedIndex === globalIndex;
             return (
               <div
                 key={`${item.char}-${globalIndex}`}
-                className="character-card"
+                className={`character-card ${isSelected ? 'selected' : ''}`}
               >
                 <div className="character">{item.char}</div>
                 <div className="character-index">{globalIndex + 1}</div>
